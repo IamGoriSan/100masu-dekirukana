@@ -357,18 +357,9 @@
         const modeNames = { add: 'たし算 (+)', sub: 'ひき算 (-)', mul: 'かけ算 (×)' };
         currentModeLabel.textContent = modeNames[currentMode];
 
-        // 数字のランダム生成（0〜9 または 1〜10、1年生向けに0〜9または1〜9など）
-        // ここでは定番の 0〜9 のシャッフルを使用
-        rowNumbers = shuffle([...Array(10).keys()]); // 0〜9
-        colNumbers = shuffle([...Array(10).keys()]); // 0〜9
-
-        // ひき算の場合はマイナスにならないよう調整するか、0〜9の組み合わせにする
-        if (currentMode === 'sub') {
-            // ひき算で答えがマイナスにならないように行・列の数値を調整することも可能ですが、
-            // シンプルに 0〜9 の組合せで差がマイナスにならないものにするか、そのまま運用します。
-            // 1年生向けに、左（行）が上（列）以上の数字になるように調整する配慮も可能です。
-            // ここでは安全のため、たし算ベースにするか、単純な数値を配置します。
-        }
+        // 数字のランダム生成（0〜9）
+        rowNumbers = shuffle([...Array(10).keys()]);
+        colNumbers = shuffle([...Array(10).keys()]);
 
         buildGrid();
 
@@ -424,7 +415,8 @@
                 const cell = document.createElement('div');
                 cell.className = 'cell';
 
-                const input = document.createElement('inputtype="number"');
+                // 【修正済み】正しい要素生成
+                const input = document.createElement('input');
                 input.type = 'tel'; // スマホのテンキーが出やすいように
                 input.dataset.row = r;
                 input.dataset.col = c;
@@ -434,7 +426,7 @@
                 const rv = rowNumbers[r];
                 const cv = colNumbers[c];
                 if (currentMode === 'add') ans = rv + cv;
-                else if (currentMode === 'sub') ans = Math.max(rv, cv) - Math.min(rv, cv); // ひき算はマイナス防止
+                else if (currentMode === 'sub') ans = Math.max(rv, cv) - Math.min(rv, cv);
                 else if (currentMode === 'mul') ans = rv * cv;
 
                 correctAnswers[`${r}_${c}`] = ans;
@@ -494,7 +486,6 @@
             accuracy: accuracy
         };
         historyData.push(record);
-        // 最大20件まで保存
         if (historyData.length > 20) historyData.shift();
         localStorage.setItem('masu_history', JSON.stringify(historyData));
 
