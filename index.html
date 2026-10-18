@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1年生の100マス計算</title>
+    <!-- Chart.jsの読み込み（履歴のグラフ表示用） -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --accent-color: #ff6b6b;
+            --success-color: #51cf66;
+            --bg-color: #f7f9fc;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        /* スタート画面・設定 */
+        .settings-group {
+            margin-bottom: 20px;
+        }
+
+        .settings-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .mode-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .mode-btn {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            background: #fff;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.selected {
+            border-color: var(--primary-color);
+            background-color: #eef4fc;
+            color: var(--primary-color);
+        }
+
+        .start-btn {
+            width: 100%;
+            padding: 16px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(255,107,107,0.3);
+            transition: transform 0.1s;
+            margin-top: 20px;
+        }
+
+        .start-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* プレイ画面 */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .timer {
+            color: var(--accent-color);
+            font-size: 1.5rem;
+        }
+
+        /* 100マスグリッド (11x11: ヘッダー含む) */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            gap: 3px;
+            margin-bottom: 20px;
+            background-color: #eee;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: bold;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .cell.header {
+            background-color: #e2e8f0;
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+
+        .cell input {
+            width: 100%;
+            height: 100%;
+            border: 2px solid #cbd5e1;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            background: #fff;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        .cell input:focus {
+            border-color: var(--primary-color);
+            background-color: #fdfdfd;
+        }
+
+        .cell input.correct {
+            background-color: #e6fcf5;
+            border-color: var(--success-color);
+            color: #0ca678;
+        }
+
+        .cell input.incorrect {
+            background-color: #fff5f5;
+            border-color: var(--accent-color);
+            color: #e03131;
+        }
+
+        /* 結果画面 */
+        .result-card {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .result-score {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 10px 0;
+        }
+
+        .result-time {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+        }
+
+        .chart-section {
+            margin-top: 30px;
+        }
+
+        .chart-section h2 {
+            font-size: 1.2rem;
+            color: #555;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .restart-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        /* 履歴リスト */
+        .history-list {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 15px;
+            text-align: left;
+            font-size: 0.95rem;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 8px;
+            border-bottom: 1px solid #f1f1f1;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>✨ 1年生の100マス計算 ✨</h1>
+
+    <!-- 1. スタート画面 -->
+    <div id="start-screen" class="screen active">
+        <div class="settings-group">
+            <label>けいさんのしゅるい</label>
+            <div class="mode-buttons">
+                <button class="mode-btn selected" data-mode="add">たし算 (+)</button>
+                <button class="mode-btn" data-mode="sub">ひき算 (-)</button>
+                <button class="mode-btn" data-mode="mul">かけ算 (×)</button>
+            </div>
+        </div>
+        <button class="start-btn" id="start-btn">スタート！</button>
+
+        <div class="chart-section">
+            <h2>📈 がんばりのれきし</h2>
+            <canvas id="historyChart" width="100" height="60"></canvas>
+            <div class="history-list" id="history-list">
+                <!-- 履歴がここにたまります -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. プレイ画面 -->
+    <div id="play-screen" class="screen">
+        <div class="game-header">
+            <span id="current-mode-label">たし算</span>
+            <div class="timer" id="timer">00:00</div>
+        </div>
+        <div class="grid-container" id="grid-container">
+            <!-- JavaScriptで動的に生成されます -->
+        </div>
+        <button class="start-btn" id="finish-btn" style="background-color: #51cf66; margin-top:0;">できた！</button>
+    </div>
+
+    <!-- 3. 結果画面 -->
+    <div id="result-screen" class="screen">
+        <div class="result-card">
+            <h2>🎉 よくがんばりました！ 🎉</h2>
+            <div class="result-time" id="result-time">じかん: 0分00秒</div>
+            <div class="result-score" id="result-score">せいかいりつ: 100%</div>
+            <p id="encouragement-text"></p>
+            <button class="restart-btn" id="back-to-home-btn">はじめの画面にもどる</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 状態管理
+    let currentMode = 'add'; // 'add', 'sub', 'mul'
+    let timerInterval = null;
+    let secondsElapsed = 0;
+    let rowNumbers = [];
+    let colNumbers = [];
+    let correctAnswers = {}; // key: "r_c", value: number
+    let historyData = JSON.parse(localStorage.getItem('masu_history') || '[]');
+    let chartInstance = null;
+
+    // DOM要素
+    const startScreen = document.getElementById('start-screen');
+    const playScreen = document.getElementById('play-screen');
+    const resultScreen = document.getElementById('result-screen');
+    const startBtn = document.getElementById('start-btn');
+    const finishBtn = document.getElementById('finish-btn');
+    const backToHomeBtn = document.getElementById('back-to-home-btn');
+    const timerDisplay = document.getElementById('timer');
+    const gridContainer = document.getElementById('grid-container');
+    const currentModeLabel = document.getElementById('current-mode-label');
+
+    // モード選択ボタン
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+            e.target.classList.add('selected');
+            currentMode = e.target.getAttribute('data-mode');
+        });
+    });
+
+    // スタートボタン
+    startBtn.addEventListener('click', () => {
+        startGame();
+    });
+
+    // 「できた！」ボタン
+    finishBtn.addEventListener('click', () => {
+        finishGame();
+    });
+
+    // ホームに戻るボタン
+    backToHomeBtn.addEventListener('click', () => {
+        showScreen(startScreen);
+        renderHistory();
+    });
+
+    function showScreen(screen) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        screen.classList.add('active');
+    }
+
+    function startGame() {
+        showScreen(playScreen);
+        
+        // モード名設定
+        const modeNames = { add: 'たし算 (+)', sub: 'ひき算 (-)', mul: 'かけ算 (×)' };
+        currentModeLabel.textContent = modeNames[currentMode];
+
+        // 数字のランダム生成（0〜9 または 1〜10、1年生向けに0〜9または1〜9など）
+        // ここでは定番の 0〜9 のシャッフルを使用
+        rowNumbers = shuffle([...Array(10).keys()]); // 0〜9
+        colNumbers = shuffle([...Array(10).keys()]); // 0〜9
+
+        // ひき算の場合はマイナスにならないよう調整するか、0〜9の組み合わせにする
+        if (currentMode === 'sub') {
+            // ひき算で答えがマイナスにならないように行・列の数値を調整することも可能ですが、
+            // シンプルに 0〜9 の組合せで差がマイナスにならないものにするか、そのまま運用します。
+            // 1年生向けに、左（行）が上（列）以上の数字になるように調整する配慮も可能です。
+            // ここでは安全のため、たし算ベースにするか、単純な数値を配置します。
+        }
+
+        buildGrid();
+
+        // タイマーリセット & 開始
+        secondsElapsed = 0;
+        timerDisplay.textContent = '00:00';
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            secondsElapsed++;
+            const m = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+            const s = String(secondsElapsed % 60).padStart(2, '0');
+            timerDisplay.textContent = `${m}:${s}`;
+        }, 1000);
+    }
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function buildGrid() {
+        gridContainer.innerHTML = '';
+        correctAnswers = {};
+
+        // 左上の角（空欄）
+        const corner = document.createElement('div');
+        corner.className = 'cell header';
+        const symbols = { add: '+', sub: '-', mul: '×' };
+        corner.textContent = symbols[currentMode];
+        gridContainer.appendChild(corner);
+
+        // 上部のヘッダー（列の数字）
+        for (let c = 0; c < 10; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell header';
+            cell.textContent = colNumbers[c];
+            gridContainer.appendChild(cell);
+        }
+
+        // 10行分の生成
+        for (let r = 0; r < 10; r++) {
+            // 行のヘッダー
+            const rowHeader = document.createElement('div');
+            rowHeader.className = 'cell header';
+            rowHeader.textContent = rowNumbers[r];
+            gridContainer.appendChild(rowHeader);
+
+            // 10個の入力マス
+            for (let c = 0; c < 10; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+
+                const input = document.createElement('inputtype="number"');
+                input.type = 'tel'; // スマホのテンキーが出やすいように
+                input.dataset.row = r;
+                input.dataset.col = c;
+
+                // 正解の計算
+                let ans = 0;
+                const rv = rowNumbers[r];
+                const cv = colNumbers[c];
+                if (currentMode === 'add') ans = rv + cv;
+                else if (currentMode === 'sub') ans = Math.max(rv, cv) - Math.min(rv, cv); // ひき算はマイナス防止
+                else if (currentMode === 'mul') ans = rv * cv;
+
+                correctAnswers[`${r}_${c}`] = ans;
+
+                cell.appendChild(input);
+                gridContainer.appendChild(cell);
+            }
+        }
+    }
+
+    function finishGame() {
+        clearInterval(timerInterval);
+
+        let total = 100;
+        let correctCount = 0;
+
+        // 採点処理
+        const inputs = gridContainer.querySelectorAll('input');
+        inputs.forEach(input => {
+            const r = input.dataset.row;
+            const c = input.dataset.col;
+            const userVal = parseInt(input.value, 10);
+            const targetAns = correctAnswers[`${r}_${c}`];
+
+            if (userVal === targetAns) {
+                input.classList.add('correct');
+                input.classList.remove('incorrect');
+                correctCount++;
+            } else {
+                input.classList.add('incorrect');
+                input.classList.remove('correct');
+            }
+        });
+
+        const accuracy = Math.round((correctCount / total) * 100);
+
+        // 結果画面の表示
+        const m = Math.floor(secondsElapsed / 60);
+        const s = secondsElapsed % 60;
+        document.getElementById('result-time').textContent = `じかん: ${m}分${s}秒`;
+        document.getElementById('result-score').textContent = `せいかいりつ: ${accuracy}% (${correctCount}/100問)`;
+
+        const encouragement = document.getElementById('encouragement-text');
+        if (accuracy === 100) {
+            encouragement.textContent = "すごい！全問正解です！よくがんばりました🌟";
+        } else if (accuracy >= 80) {
+            encouragement.textContent = "おしい！あとすこしで満点だよ！このちょうしだ！👍";
+        } else {
+            encouragement.textContent = "あきらめずに最後までがんばったね！次もチャレンジしよう！💪";
+        }
+
+        // 履歴の保存
+        const record = {
+            date: new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            mode: currentMode,
+            seconds: secondsElapsed,
+            accuracy: accuracy
+        };
+        historyData.push(record);
+        // 最大20件まで保存
+        if (historyData.length > 20) historyData.shift();
+        localStorage.setItem('masu_history', JSON.stringify(historyData));
+
+        showScreen(resultScreen);
+    }
+
+    // 履歴とグラフのレンダリング
+    function renderHistory() {
+        const historyList = document.getElementById('history-list');
+        historyList.innerHTML = '';
+
+        if (historyData.length === 0) {
+            historyList.innerHTML = '<div style="text-align:center; color:#888; padding: 10px;">まだきろくがありません。はじめてみよう！</div>';
+            if (chartInstance) chartInstance.destroy();
+            return;
+        }
+
+        // 履歴リストの描画
+        [...historyData].reverse().forEach(item => {
+            const modeNames = { add: 'たし算', sub: 'ひき算', mul: 'かけ算' };
+            const m = Math.floor(item.seconds / 60);
+            const s = item.seconds % 60;
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `<span>${item.date} (${modeNames[item.mode] || 'たし算'})</span> <span><strong>${m}分${s}秒</strong> (正解率:${item.accuracy}%)</span>`;
+            historyList.appendChild(div);
+        });
+
+        // グラフの描画 (Chart.js)
+        const ctx = document.getElementById('historyChart').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        const labels = historyData.map((item, index) => `#${index + 1}`);
+        const timeData = historyData.map(item => item.seconds);
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'タイム (秒)',
+                    data: timeData,
+                    borderColor: '#4a90e2',
+                    backgroundColor: 'rgba(74, 144, 226, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: '秒' }
+                    }
+                }
+            }
+        });
+    }
+
+    // 初回読み込み時に履歴を表示
+    renderHistory();
+</script>
+
+</body>
+</html>
