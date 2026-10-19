@@ -2,18 +2,20 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>わくわく！はじめての計算スタジアム</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>わくわく！けいさんスタジアム</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js for history visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Google Fonts: Rounded Mplus 1c for child-friendly typography -->
+    <!-- Google Fonts: Rounded Mplus 1c -->
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'M PLUS Rounded 1c', sans-serif;
             touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
         .bouncing {
             animation: bounce 0.6s infinite alternate;
@@ -22,34 +24,56 @@
             from { transform: translateY(0); }
             to { transform: translateY(-8px); }
         }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+        .shake {
+            animation: shake 0.25s ease-in-out 2;
+        }
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-anim {
+            animation: pop 0.3s ease-out forwards;
+        }
     </style>
 </head>
 <body class="bg-amber-50 text-slate-800 min-h-screen flex flex-col justify-between selection:bg-pink-300">
 
     <!-- Header -->
-    <header class="bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 shadow-md py-4 px-6 text-center text-white relative">
-        <h1 class="text-3xl md:text-4xl font-black drop-shadow-md flex items-center justify-center gap-2">
+    <header class="bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 shadow-md py-2.5 px-4 text-center text-white relative">
+        <h1 class="text-2xl md:text-3xl font-black drop-shadow-md flex items-center justify-center gap-2">
             <span>🦁</span> わくわく！けいさんスタジアム <span>⭐</span>
         </h1>
-        <p class="text-sm md:text-base font-bold opacity-90 mt-1">しょうがく1年生むけのたのしい計算トレーニング</p>
     </header>
 
     <!-- Main Content Area -->
-    <main class="container mx-auto px-4 py-6 max-w-4xl flex-grow flex flex-col items-center">
+    <main class="container mx-auto px-2 sm:px-4 py-3 max-w-5xl flex-grow flex flex-col items-center justify-center">
 
-        <!-- Mode Selection / Setup View -->
-        <div id="setup-view" class="w-full bg-white rounded-3xl shadow-xl p-6 md:p-8 border-4 border-amber-200">
-            <h2 class="text-2xl font-black text-amber-600 mb-6 text-center">✨ もんだいをえらぼう！ ✨</h2>
+        <!-- 1. Mode Selection / Setup View -->
+        <div id="setup-view" class="w-full max-w-2xl bg-white rounded-3xl shadow-xl p-5 md:p-8 border-4 border-amber-200">
+            <h2 class="text-xl md:text-2xl font-black text-amber-600 mb-2 text-center">✨ もんだいをえらぼう！ ✨</h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Best Score Banner -->
+            <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl py-2 px-4 mb-5 text-center flex items-center justify-center gap-2">
+                <span class="text-xl">👑</span>
+                <span class="text-sm md:text-base font-bold text-slate-600">このモードのじこベスト:</span>
+                <span id="setup-best-time" class="text-lg md:text-xl font-black text-amber-600">まだきろくがないよ</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
                 <!-- Operation Type -->
                 <div>
-                    <label class="block text-lg font-bold text-slate-700 mb-3">けいさんのしゅるい</label>
+                    <label class="block text-base font-bold text-slate-700 mb-2">けいさんのしゅるい</label>
                     <div class="grid grid-cols-2 gap-3">
-                        <button onclick="setOp('add')" id="btn-op-add" class="p-4 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-pink-100 border-pink-400 text-pink-700 scale-105">
+                        <button onclick="setOp('add')" id="btn-op-add" class="p-3.5 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-pink-100 border-pink-400 text-pink-700 scale-105">
                             ➕ たしざん
                         </button>
-                        <button onclick="setOp('sub')" id="btn-op-sub" class="p-4 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400">
+                        <button onclick="setOp('sub')" id="btn-op-sub" class="p-3.5 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400">
                             ➖ ひきざん
                         </button>
                     </div>
@@ -57,167 +81,214 @@
 
                 <!-- Range / Difficulty -->
                 <div>
-                    <label class="block text-lg font-bold text-slate-700 mb-3">むずかしさ（すうじのはんい）</label>
+                    <label class="block text-base font-bold text-slate-700 mb-2">むずかしさ（すうじのはんい）</label>
                     <div class="grid grid-cols-2 gap-3">
-                        <button onclick="setRange(10)" id="btn-range-10" class="p-4 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-sky-100 border-sky-400 text-sky-700 scale-105">
-                            10 まで
+                        <button onclick="setRange(10)" id="btn-range-10" class="p-3.5 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-sky-100 border-sky-400 text-sky-700 scale-105">
+                            🌱 やさしい (10まで)
                         </button>
-                        <button onclick="setRange(20)" id="btn-range-20" class="p-4 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400">
-                            20 まで
+                        <button onclick="setRange(20)" id="btn-range-20" class="p-3.5 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400">
+                            🔥 チャレンジ (20まで)
                         </button>
                     </div>
                 </div>
             </div>
 
             <!-- Grid Size Choice -->
-            <div class="mb-8">
-                <label class="block text-lg font-bold text-slate-700 mb-3">マスの数（ボリューム）</label>
-                <div class="grid grid-cols-2 gap-4 max-w-md mx-auto">
-                    <button onclick="setSize(50)" id="btn-size-50" class="p-4 rounded-2xl border-4 font-black text-xl transition-all shadow-sm bg-purple-100 border-purple-400 text-purple-700 scale-105">
-                        🌟 50マス（おすすめ）
+            <div class="mb-6">
+                <label class="block text-base font-bold text-slate-700 mb-2">マスの数（ボリューム）</label>
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="setSize(25)" id="btn-size-25" class="p-3 rounded-2xl border-4 font-black text-base md:text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400">
+                        🐣 25マス
                     </button>
-                    <button onclick="setSize(100)" id="btn-size-100" class="p-4 rounded-2xl border-4 font-black text-xl transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400">
-                        🔥 100マス
+                    <button onclick="setSize(50)" id="btn-size-50" class="p-3 rounded-2xl border-4 font-black text-base md:text-lg transition-all shadow-sm bg-purple-100 border-purple-400 text-purple-700 scale-105">
+                        🌟 50マス
+                    </button>
+                    <button onclick="setSize(100)" id="btn-size-100" class="p-3 rounded-2xl border-4 font-black text-base md:text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400">
+                        🦁 100マス
                     </button>
                 </div>
             </div>
 
-            <button onclick="startGame()" class="w-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-black text-2xl py-5 rounded-2xl shadow-lg border-b-6 border-green-700 active:translate-y-1 transition-all flex items-center justify-center gap-3">
+            <button onclick="startGame()" class="w-full bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 text-white font-black text-2xl py-4 rounded-2xl shadow-lg border-b-4 border-green-700 active:translate-y-1 transition-all flex items-center justify-center gap-3">
                 <span>🚀</span> スタート！
             </button>
 
             <!-- Dashboard Button -->
-            <div class="mt-6 text-center">
-                <button onclick="showHistoryView()" class="text-amber-700 font-bold underline text-lg hover:text-amber-900">
+            <div class="mt-5 text-center">
+                <button onclick="showHistoryView()" class="text-amber-700 font-bold underline text-base hover:text-amber-900">
                     📊 これまでのきろく（グラフ）をみる
                 </button>
             </div>
         </div>
 
-        <!-- Game/Quiz View -->
+        <!-- 2. Game/Quiz View -->
         <div id="game-view" class="w-full hidden flex flex-col items-center">
             <!-- Top Game Bar -->
-            <div class="w-full flex justify-between items-center mb-4 bg-white p-4 rounded-2xl shadow-md border-2 border-amber-200">
-                <button onclick="quitGame()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold px-4 py-2 rounded-xl border-2 border-rose-300">
+            <div class="w-full flex flex-wrap justify-between items-center gap-2 mb-2 bg-white px-3 py-2 rounded-2xl shadow-sm border-2 border-amber-200">
+                <button onclick="openQuitModal()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-sm px-3 py-1.5 rounded-xl border-2 border-rose-300">
                     🏠 やめる
                 </button>
-                <div class="text-2xl font-black text-amber-600 flex items-center gap-2">
-                    ⏱️ <span id="timer-display">00.0</span>びょう
+                
+                <!-- Current Question Banner -->
+                <div class="flex items-center gap-2 bg-amber-100 px-4 py-1 rounded-xl border-2 border-amber-300">
+                    <span class="text-xs font-bold text-amber-800 hidden sm:inline">いまのもんだい:</span>
+                    <span id="current-formula" class="text-xl md:text-2xl font-black text-slate-800">0 ＋ 0 ＝ ？</span>
                 </div>
-                <div class="text-lg font-bold text-slate-600">
-                    のこり: <span id="remaining-count" class="text-rose-500 font-black text-xl">50</span>マス
+
+                <div class="flex items-center gap-3">
+                    <!-- Combo Indicator -->
+                    <div id="combo-badge" class="hidden bg-gradient-to-r from-pink-500 to-orange-400 text-white text-xs md:text-sm font-black px-2.5 py-1 rounded-full shadow">
+                        🔥 <span id="combo-count">0</span> れんぞく！
+                    </div>
+                    <div class="text-lg md:text-xl font-black text-amber-600">
+                        ⏱️ <span id="timer-display">0.0</span><span class="text-xs ml-0.5">びょう</span>
+                    </div>
+                    <div class="text-xs md:text-sm font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
+                        のこり <span id="remaining-count" class="text-rose-500 font-black text-base">50</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Grid Container -->
-            <div id="grid-wrapper" class="bg-white p-4 rounded-3xl shadow-xl border-4 border-amber-200 overflow-x-auto max-w-full mb-6">
-                <!-- Dynamically populated table/grid -->
-            </div>
-
-            <!-- On-screen TenKey for Easy Mobile/Tablet Input -->
-            <div class="bg-amber-100 p-4 rounded-3xl shadow-inner border-2 border-amber-300 w-full max-w-md">
-                <div class="grid grid-cols-3 gap-3 mb-3">
-                    <button onclick="inputNumber(1)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-3xl py-4 rounded-2xl shadow border-b-4 border-amber-300">1</button>
-                    <button onclick="inputNumber(2)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-3xl py-4 rounded-2xl shadow border-b-4 border-amber-300">2</button>
-                    <button onclick="inputNumber(3)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-3xl py-4 rounded-2xl shadow border-b-4 border-amber-300">3</button>
-                    <button onclick="inputNumber(4)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-3xl py-4 rounded-2xl shadow border-b-4 border-amber-300">4</button>
-                    <button onclick="inputNumber(5)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-3xl py-4 rounded-2xl shadow border-b-4 border-amber-300">5</button>
-                    <button onclick="inputNumber(6)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-3xl py-4 rounded-2xl shadow border-b-4 border-amber-300">6</button>
-                    <button onclick="inputNumber(7)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-3xl py-4 rounded-2xl shadow border-b-4 border-amber-300">7</button>
-                    <button onclick="inputNumber(8)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-3xl py-4 rounded-2xl shadow border-b-4 border-amber-300">8</button>
-                    <button onclick="inputNumber(9)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-3xl py-4 rounded-2xl shadow border-b-4 border-amber-300">9</button>
+            <!-- Main Play Layout: Responsive side-by-side on large screens / landscape tablets, stacked on mobile -->
+            <div class="w-full flex flex-col lg:flex-row items-center justify-center gap-4">
+                
+                <!-- Grid Container -->
+                <div id="grid-wrapper" class="bg-white p-2 sm:p-3 rounded-3xl shadow-lg border-4 border-amber-200 overflow-x-auto max-w-full flex-grow flex justify-center">
+                    <!-- Dynamically populated table -->
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="inputNumber(0)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-3xl py-3 rounded-2xl shadow border-b-4 border-amber-300">0</button>
-                    <button onclick="inputDelete()" class="bg-rose-200 hover:bg-rose-300 active:bg-rose-400 text-rose-800 font-black text-xl py-3 rounded-2xl shadow border-b-4 border-rose-400 flex items-center justify-center gap-1">
-                        <span>⬅️</span> けす
-                    </button>
+
+                <!-- On-screen TenKey -->
+                <div class="bg-amber-100 p-3 rounded-3xl shadow-inner border-2 border-amber-300 w-full max-w-xs lg:w-72 shrink-0">
+                    <div class="grid grid-cols-3 gap-2 mb-2">
+                        <button onclick="inputNumber(1)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-2xl py-2.5 rounded-xl shadow border-b-4 border-amber-300">1</button>
+                        <button onclick="inputNumber(2)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-2xl py-2.5 rounded-xl shadow border-b-4 border-amber-300">2</button>
+                        <button onclick="inputNumber(3)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-2xl py-2.5 rounded-xl shadow border-b-4 border-amber-300">3</button>
+                        <button onclick="inputNumber(4)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-2xl py-2.5 rounded-xl shadow border-b-4 border-amber-300">4</button>
+                        <button onclick="inputNumber(5)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-2xl py-2.5 rounded-xl shadow border-b-4 border-amber-300">5</button>
+                        <button onclick="inputNumber(6)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-2xl py-2.5 rounded-xl shadow border-b-4 border-amber-300">6</button>
+                        <button onclick="inputNumber(7)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-2xl py-2.5 rounded-xl shadow border-b-4 border-amber-300">7</button>
+                        <button onclick="inputNumber(8)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-2xl py-2.5 rounded-xl shadow border-b-4 border-amber-300">8</button>
+                        <button onclick="inputNumber(9)" class="bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-2xl py-2.5 rounded-xl shadow border-b-4 border-amber-300">9</button>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="inputNumber(0)" class="col-span-2 bg-white hover:bg-amber-50 active:bg-amber-200 text-slate-800 font-black text-2xl py-2.5 rounded-xl shadow border-b-4 border-amber-300">0</button>
+                        <button onclick="inputDelete()" class="bg-rose-200 hover:bg-rose-300 active:bg-rose-400 text-rose-800 font-black text-base py-2.5 rounded-xl shadow border-b-4 border-rose-400 flex items-center justify-center">
+                            けす
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-amber-800 text-center mt-2 font-bold opacity-80">
+                        💡 まちがえたら そのまま別の数字をおせるよ
+                    </p>
                 </div>
             </div>
         </div>
 
-        <!-- Result / Completion View -->
-        <div id="result-view" class="w-full hidden bg-white rounded-3xl shadow-xl p-6 md:p-8 border-4 border-amber-200 text-center">
-            <div class="text-6xl mb-2 bouncing">🎉</div>
-            <h2 class="text-3xl font-black text-amber-600 mb-4">よくがんばりました！</h2>
+        <!-- 3. Result / Completion View -->
+        <div id="result-view" class="w-full max-w-xl hidden bg-white rounded-3xl shadow-xl p-6 md:p-8 border-4 border-amber-200 text-center">
+            <div id="res-medal" class="text-6xl mb-1 bouncing">🥇</div>
+            <h2 id="res-title" class="text-2xl md:text-3xl font-black text-amber-600 mb-2">たいへんよくできました！</h2>
+            <div id="new-record-badge" class="hidden inline-block bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-black text-sm px-4 py-1 rounded-full shadow mb-4">
+                🎊 じこベストこうしん！！ 🎊
+            </div>
             
-            <div class="bg-amber-50 rounded-2xl p-6 max-w-md mx-auto mb-6 border-2 border-amber-200 grid grid-cols-2 gap-4 text-left">
+            <div class="bg-amber-50 rounded-2xl p-5 max-w-md mx-auto mb-6 border-2 border-amber-200 grid grid-cols-2 gap-4 text-left">
                 <div>
-                    <p class="text-sm font-bold text-slate-500">かかったじかん</p>
-                    <p id="res-time" class="text-3xl font-black text-slate-800">00.0びょう</p>
+                    <p class="text-xs font-bold text-slate-500">かかったじかん</p>
+                    <p id="res-time" class="text-2xl md:text-3xl font-black text-slate-800">00.0びょう</p>
                 </div>
                 <div>
-                    <p class="text-sm font-bold text-slate-500">せいかいりつ</p>
-                    <p id="res-accuracy" class="text-3xl font-black text-emerald-600">100%</p>
+                    <p class="text-xs font-bold text-slate-500">せいかいりつ（一発正解）</p>
+                    <p id="res-accuracy" class="text-2xl md:text-3xl font-black text-emerald-600">100%</p>
                 </div>
-                <div class="col-span-2 border-t border-amber-200 pt-2 flex justify-between">
-                    <span class="text-sm font-bold text-slate-500">まちがえたかず:</span>
-                    <span id="res-errors" class="text-lg font-black text-rose-500">0 こ</span>
+                <div class="col-span-2 border-t border-amber-200 pt-2 flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-500">おしかった問題（ミスした数）:</span>
+                    <span id="res-errors" class="text-base font-black text-rose-500">0 こ</span>
                 </div>
             </div>
 
-            <!-- Review Error Section if any -->
-            <div id="error-review-container" class="hidden mb-6 text-left max-w-lg mx-auto bg-rose-50 p-4 rounded-2xl border-2 border-rose-200">
-                <h3 class="font-bold text-rose-700 mb-2">💡 まちがえたもんだいを確認しよう</h3>
-                <div id="error-list" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto"></div>
+            <!-- Review Error Section -->
+            <div id="error-review-container" class="hidden mb-6 text-left max-w-md mx-auto bg-rose-50 p-4 rounded-2xl border-2 border-rose-200">
+                <h3 class="font-bold text-rose-700 text-sm mb-2">💡 つぎは一発でできるかな？おしかった問題</h3>
+                <div id="error-list" class="flex flex-wrap gap-2 max-h-36 overflow-y-auto"></div>
             </div>
 
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <button onclick="startGame()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xl px-8 py-4 rounded-2xl shadow-md border-b-4 border-emerald-700">
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <button onclick="startGame()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg px-6 py-3.5 rounded-2xl shadow-md border-b-4 border-emerald-700">
                     🔄 もういちどチャレンジ
                 </button>
-                <button onclick="showHistoryView()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-xl px-8 py-4 rounded-2xl shadow-md border-b-4 border-amber-700">
-                    📊 記録をみる
+                <button onclick="showSetupView()" class="bg-sky-500 hover:bg-sky-600 text-white font-black text-lg px-6 py-3.5 rounded-2xl shadow-md border-b-4 border-sky-700">
+                    ⚙️ もんだいをかえる
+                </button>
+                <button onclick="showHistoryView()" class="bg-amber-500 hover:bg-amber-600 text-white font-black text-lg px-6 py-3.5 rounded-2xl shadow-md border-b-4 border-amber-700">
+                    📊 きろくをみる
                 </button>
             </div>
         </div>
 
-        <!-- History & Visualization View -->
-        <div id="history-view" class="w-full hidden bg-white rounded-3xl shadow-xl p-6 md:p-8 border-4 border-amber-200">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-black text-amber-600">📊 けいさんスタンプ＆きろく</h2>
+        <!-- 4. History & Visualization View -->
+        <div id="history-view" class="w-full max-w-2xl hidden bg-white rounded-3xl shadow-xl p-5 md:p-8 border-4 border-amber-200">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl md:text-2xl font-black text-amber-600">📊 けいさんスタンプ＆きろく</h2>
                 <button onclick="showSetupView()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl">
                     ⬅️ もどる
                 </button>
             </div>
 
             <!-- Stats Chart Container -->
-            <div class="mb-8 bg-slate-50 p-4 rounded-2xl border-2 border-slate-200">
-                <h3 class="font-bold text-slate-700 mb-2 text-center">タイムのへんか（びょう）</h3>
-                <div class="relative h-64 w-full">
+            <div class="mb-6 bg-slate-50 p-4 rounded-2xl border-2 border-slate-200">
+                <h3 class="font-bold text-slate-700 text-sm mb-2 text-center">タイムのへんか（びょう）</h3>
+                <div class="relative h-56 w-full">
                     <canvas id="historyChart"></canvas>
                 </div>
             </div>
 
             <!-- Log Table / List -->
             <div>
-                <h3 class="font-bold text-slate-700 mb-3">がんばったね！！</h3>
-                <div id="history-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
-                    <!-- Populated dynamically -->
-                </div>
+                <h3 class="font-bold text-slate-700 text-sm mb-2">これまでのきろく</h3>
+                <div id="history-list" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
             </div>
             
-            <div class="mt-6 text-center">
-                <button onclick="clearHistory()" class="text-rose-500 font-bold text-sm underline">
-                    🗑️ 記録をリセットする
+            <div class="mt-5 text-center">
+                <button onclick="clearHistory()" class="text-rose-500 font-bold text-xs underline">
+                    🗑️ すべてのきろくをリセットする
                 </button>
             </div>
         </div>
 
     </main>
 
+    <!-- Custom Quit Confirmation Modal -->
+    <div id="quit-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full border-4 border-amber-300 shadow-2xl text-center pop-anim">
+            <div class="text-4xl mb-2">🤔</div>
+            <h3 class="text-xl font-black text-slate-800 mb-2">とちゅうでやめますか？</h3>
+            <p class="text-sm font-bold text-slate-500 mb-6">いまのきろくは のこりません。</p>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closeQuitModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-3 rounded-2xl">
+                    つづける
+                </button>
+                <button onclick="confirmQuitGame()" class="bg-rose-500 hover:bg-rose-600 text-white font-black py-3 rounded-2xl shadow border-b-4 border-rose-700">
+                    やめる
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
-    <footer class="text-center py-4 text-xs text-slate-500 font-bold">
-        © 2026 わくわく！けいさんスタジアム - 楽しく算数マスター！
+    <footer class="text-center py-2 text-xs text-slate-400 font-bold">
+        © 2026 わくわく！けいさんスタジアム
     </footer>
 
     <!-- Application Logic -->
     <script>
-        // Audio Context for Sound Effects
+        // --- Audio Context for Sound Effects ---
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
             }
         }
 
@@ -225,31 +296,33 @@
             try {
                 initAudio();
                 if (!audioCtx) return;
-                const osc = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                osc.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-
                 const now = audioCtx.currentTime;
 
                 if (type === 'correct') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(587.33, now); // D5
-                    osc.frequency.setValueAtTime(880, now + 0.08); // A5
-                    gainNode.gain.setValueAtTime(0.15, now);
-                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-                    osc.start(now);
-                    osc.stop(now + 0.3);
-                } else if (type === 'error') {
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(150, now);
-                    osc.frequency.setValueAtTime(100, now + 0.1);
-                    gainNode.gain.setValueAtTime(0.1, now);
-                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.frequency.setValueAtTime(880, now + 0.07); // A5
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
                     osc.start(now);
                     osc.stop(now + 0.25);
+                } else if (type === 'error') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.setValueAtTime(110, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
                 } else if (type === 'complete') {
-                    // Fanfare chime
                     const notes = [523.25, 659.25, 783.99, 1046.50];
                     notes.forEach((freq, idx) => {
                         const o = audioCtx.createOscillator();
@@ -268,57 +341,103 @@
             }
         }
 
-        // App Configuration States
+        // --- App Configuration States ---
         let currentOp = 'add'; // 'add' or 'sub'
         let currentRange = 10; // 10 or 20
-        let currentSize = 50;  // 50 or 100 (50 is 5x10 or 5x5 depending on layout; let's use 5x10 for 50, 10x10 for 100)
+        let currentSize = 50;  // 25 (5x5), 50 (5x10), 100 (10x10)
+
+        function getModeKey() {
+            return `${currentOp}_${currentRange}_${currentSize}`;
+        }
+
+        function updateBestScoreDisplay() {
+            const bests = JSON.parse(localStorage.getItem('calc_bests') || '{}');
+            const key = getModeKey();
+            const bestEl = document.getElementById('setup-best-time');
+            if (bests[key]) {
+                bestEl.innerText = `${bests[key]} びょう`;
+            } else {
+                bestEl.innerText = 'まだきろくがないよ';
+            }
+        }
 
         function setOp(op) {
             currentOp = op;
-            document.getElementById('btn-op-add').className = op === 'add' 
-                ? 'p-4 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-pink-100 border-pink-400 text-pink-700 scale-105'
-                : 'p-4 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400';
-            document.getElementById('btn-op-sub').className = op === 'sub' 
-                ? 'p-4 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-pink-100 border-pink-400 text-pink-700 scale-105'
-                : 'p-4 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400';
+            const activeCls = 'p-3.5 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-pink-100 border-pink-400 text-pink-700 scale-105';
+            const inactiveCls = 'p-3.5 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400';
+            document.getElementById('btn-op-add').className = op === 'add' ? activeCls : inactiveCls;
+            document.getElementById('btn-op-sub').className = op === 'sub' ? activeCls : inactiveCls;
+            updateBestScoreDisplay();
         }
 
         function setRange(range) {
             currentRange = range;
-            document.getElementById('btn-range-10').className = range === 10 
-                ? 'p-4 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-sky-100 border-sky-400 text-sky-700 scale-105'
-                : 'p-4 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400';
-            document.getElementById('btn-range-20').className = range === 20 
-                ? 'p-4 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-sky-100 border-sky-400 text-sky-700 scale-105'
-                : 'p-4 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400';
+            const activeCls = 'p-3.5 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-sky-100 border-sky-400 text-sky-700 scale-105';
+            const inactiveCls = 'p-3.5 rounded-2xl border-4 font-black text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400';
+            document.getElementById('btn-range-10').className = range === 10 ? activeCls : inactiveCls;
+            document.getElementById('btn-range-20').className = range === 20 ? activeCls : inactiveCls;
+            updateBestScoreDisplay();
         }
 
         function setSize(size) {
             currentSize = size;
-            document.getElementById('btn-size-50').className = size === 50 
-                ? 'p-4 rounded-2xl border-4 font-black text-xl transition-all shadow-sm bg-purple-100 border-purple-400 text-purple-700 scale-105'
-                : 'p-4 rounded-2xl border-4 font-black text-xl transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400';
-            document.getElementById('btn-size-100').className = size === 100 
-                ? 'p-4 rounded-2xl border-4 font-black text-xl transition-all shadow-sm bg-purple-100 border-purple-400 text-purple-700 scale-105'
-                : 'p-4 rounded-2xl border-4 font-black text-xl transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400';
+            const activeCls = 'p-3 rounded-2xl border-4 font-black text-base md:text-lg transition-all shadow-sm bg-purple-100 border-purple-400 text-purple-700 scale-105';
+            const inactiveCls = 'p-3 rounded-2xl border-4 font-black text-base md:text-lg transition-all shadow-sm bg-slate-50 border-slate-200 text-slate-400';
+            document.getElementById('btn-size-25').className = size === 25 ? activeCls : inactiveCls;
+            document.getElementById('btn-size-50').className = size === 50 ? activeCls : inactiveCls;
+            document.getElementById('btn-size-100').className = size === 100 ? activeCls : inactiveCls;
+            updateBestScoreDisplay();
         }
 
-        // Game State Variables
+        // --- Game State Variables ---
         let rowHeaders = [];
         let colHeaders = [];
-        let answers = []; // 2D array of correct answers
-        let userInputs = []; // 2D array of user inputs
+        let answers = [];
+        let userInputs = [];
+        let hadMistake = []; // Track if a cell had at least one wrong attempt
         let activeCell = { r: 0, c: 0 };
         let startTime = 0;
         let timerInterval = null;
         let totalCellsCount = 0;
+        let comboCount = 0;
 
         function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
+                [arr[i], arr[j]] = [arr[j], arr[i]];
             }
-            return array;
+            return arr;
+        }
+
+        // Generate valid headers without mutating mid-calculation
+        function generateHeaders(rowsCount, colsCount) {
+            if (currentOp === 'add') {
+                if (currentRange === 10) {
+                    // Sum roughly up to 10 (1st grade intro): rows 1..5, cols 0..5 (or 0..9 for 10 cols)
+                    const colPool = shuffleArray([0, 1, 2, 3, 4, 5, 1, 2, 3, 4]);
+                    const rowPool = shuffleArray([1, 2, 3, 4, 5, 0, 1, 2, 3, 5]);
+                    colHeaders = colPool.slice(0, colsCount);
+                    rowHeaders = rowPool.slice(0, rowsCount);
+                } else {
+                    // Sum up to 20 (standard 100-cell addition: 0..9 + 1..10)
+                    colHeaders = shuffleArray([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, colsCount);
+                    rowHeaders = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).slice(0, rowsCount);
+                }
+            } else {
+                // Subtraction: rowHeaders[r] - colHeaders[c] >= 0 is ALWAYS guaranteed
+                if (currentRange === 10) {
+                    // Row headers: 5..10, Col headers: 0..5
+                    const rowPool = shuffleArray([5, 6, 7, 8, 9, 10, 6, 7, 8, 9]);
+                    const colPool = shuffleArray([0, 1, 2, 3, 4, 5, 1, 2, 3, 4]);
+                    rowHeaders = rowPool.slice(0, rowsCount);
+                    colHeaders = colPool.slice(0, colsCount);
+                } else {
+                    // Row headers: 10..19, Col headers: 0..9 (Standard 100-cell subtraction)
+                    rowHeaders = shuffleArray([10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).slice(0, rowsCount);
+                    colHeaders = shuffleArray([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, colsCount);
+                }
+            }
         }
 
         function startGame() {
@@ -327,68 +446,38 @@
             document.getElementById('history-view').classList.add('hidden');
             document.getElementById('game-view').classList.remove('hidden');
 
-            // Generate headers based on size and range
-            // For 50マス, rows = 5, cols = 10. For 100マス, rows = 10, cols = 10.
-            const rowsCount = currentSize === 50 ? 5 : 10;
-            const colsCount = 10;
+            const rowsCount = currentSize === 100 ? 10 : 5;
+            const colsCount = currentSize === 25 ? 5 : 10;
             totalCellsCount = rowsCount * colsCount;
+            comboCount = 0;
+            updateComboDisplay();
 
             document.getElementById('remaining-count').innerText = totalCellsCount;
 
-            // Generate pool of numbers depending on range
-            let maxNum = currentRange;
-            let rowPool = [];
-            let colPool = [];
+            generateHeaders(rowsCount, colsCount);
 
-            if (currentOp === 'add') {
-                // For addition up to range N
-                for (let i = 0; i <= maxNum; i++) {
-                    rowPool.push(i);
-                    colPool.push(i);
-                }
-                rowHeaders = shuffleArray([...rowPool]).slice(0, rowsCount);
-                colHeaders = shuffleArray([...colPool]).slice(0, colsCount);
-            } else {
-                // Subtraction: ensure result >= 0
-                // Row numbers can be up to maxNum, col numbers <= corresponding row to keep positive
-                rowHeaders = shuffleArray(Array.from({length: maxNum + 1}, (_, i) => i)).slice(0, rowsCount);
-                colHeaders = shuffleArray(Array.from({length: maxNum + 1}, (_, i) => i)).slice(0, colsCount);
-            }
-
-            // Build grid data
             answers = [];
             userInputs = [];
+            hadMistake = [];
+
             for (let r = 0; r < rowsCount; r++) {
                 answers[r] = [];
                 userInputs[r] = [];
+                hadMistake[r] = [];
                 for (let c = 0; c < colsCount; c++) {
-                    let val = 0;
-                    if (currentOp === 'add') {
-                        val = rowHeaders[r] + colHeaders[c];
-                    } else {
-                        // Ensure min(row, col) as base if subtraction can result in negative, or enforce row >= col
-                        let a = rowHeaders[r];
-                        let b = colHeaders[c];
-                        val = Math.abs(a - b); // Keep non-negative
-                        if (a < b) {
-                            // Swap or adjust for 1st grader subtraction
-                            rowHeaders[r] = Math.max(a, b);
-                            colHeaders[c] = Math.min(a, b);
-                            val = rowHeaders[r] - colHeaders[c];
-                        }
-                    }
-                    answers[r][c] = val;
+                    answers[r][c] = currentOp === 'add'
+                        ? rowHeaders[r] + colHeaders[c]
+                        : rowHeaders[r] - colHeaders[c];
                     userInputs[r][c] = null;
+                    hadMistake[r][c] = false;
                 }
             }
 
             renderGrid();
 
-            // Set active cell to first cell
             activeCell = { r: 0, c: 0 };
             updateActiveCellHighlight();
 
-            // Start Timer
             startTime = Date.now();
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
@@ -400,28 +489,32 @@
         function renderGrid() {
             const rowsCount = rowHeaders.length;
             const colsCount = colHeaders.length;
-            const opSymbol = currentOp === 'add' ? '➕' : '➖';
+            const opSymbol = currentOp === 'add' ? '＋' : '－';
+
+            // Adjust cell size based on 100 cells vs 50/25 cells so it fits nicely on screen
+            const cellSizeCls = currentSize === 100
+                ? 'w-9 h-9 sm:w-11 sm:h-11 text-base sm:text-xl'
+                : 'w-11 h-11 sm:w-14 sm:h-14 text-lg sm:text-2xl';
 
             let html = `<table class="border-collapse mx-auto">`;
             
             // Header Row
             html += `<tr>`;
-            html += `<th class="w-12 h-12 md:w-16 md:h-16 bg-amber-400 text-white font-black text-xl rounded-tl-2xl border-2 border-amber-300 flex items-center justify-center">${opSymbol}</th>`;
+            html += `<th class="${cellSizeCls} bg-amber-500 text-white font-black rounded-tl-xl border border-amber-300 text-center">${opSymbol}</th>`;
             for (let c = 0; c < colsCount; c++) {
-                html += `<th class="w-12 h-12 md:w-16 md:h-16 bg-amber-200 text-amber-900 font-black text-xl border-2 border-amber-300 text-center">${colHeaders[c]}</th>`;
+                html += `<th id="col-hdr-${c}" class="${cellSizeCls} bg-amber-200 text-amber-900 font-black border border-amber-300 text-center transition-colors">${colHeaders[c]}</th>`;
             }
             html += `</tr>`;
 
             // Data Rows
             for (let r = 0; r < rowsCount; r++) {
                 html += `<tr>`;
-                // Row Header
-                html += `<th class="w-12 h-12 md:w-16 md:h-16 bg-amber-200 text-amber-900 font-black text-xl border-2 border-amber-300 text-center">${rowHeaders[r]}</th>`;
+                html += `<th id="row-hdr-${r}" class="${cellSizeCls} bg-amber-200 text-amber-900 font-black border border-amber-300 text-center transition-colors">${rowHeaders[r]}</th>`;
                 
                 for (let c = 0; c < colsCount; c++) {
                     const val = userInputs[r][c] !== null ? userInputs[r][c] : '';
-                    html += `<td class="w-12 h-12 md:w-16 md:h-16 border-2 border-amber-200 text-center p-1">`;
-                    html += `<div onclick="selectCell(${r}, ${c})" id="cell-${r}-${c}" class="w-full h-full rounded-xl bg-amber-50 flex items-center justify-center font-black text-2xl text-slate-700 cursor-pointer transition-all shadow-inner select-none">${val}</div>`;
+                    html += `<td class="${cellSizeCls} border border-amber-200 p-0.5">`;
+                    html += `<div onclick="selectCell(${r}, ${c})" id="cell-${r}-${c}" class="w-full h-full rounded-lg flex items-center justify-center font-black cursor-pointer transition-all select-none">${val}</div>`;
                     html += `</td>`;
                 }
                 html += `</tr>`;
@@ -440,117 +533,178 @@
             const rowsCount = rowHeaders.length;
             const colsCount = colHeaders.length;
 
+            // Update Current Formula Banner
+            const opSymbol = currentOp === 'add' ? '＋' : '－';
+            const currentAns = userInputs[activeCell.r][activeCell.c];
+            const dispAns = currentAns !== null ? currentAns : '？';
+            document.getElementById('current-formula').innerText = 
+                `${rowHeaders[activeCell.r]} ${opSymbol} ${colHeaders[activeCell.c]} ＝ ${dispAns}`;
+
+            // Highlight Row & Column Headers
+            for (let r = 0; r < rowsCount; r++) {
+                const rh = document.getElementById(`row-hdr-${r}`);
+                if (rh) {
+                    rh.className = rh.className.replace(/bg-\S+/g, r === activeCell.r ? 'bg-orange-400 text-white scale-105' : 'bg-amber-200 text-amber-900');
+                }
+            }
+            for (let c = 0; c < colsCount; c++) {
+                const ch = document.getElementById(`col-hdr-${c}`);
+                if (ch) {
+                    ch.className = ch.className.replace(/bg-\S+/g, c === activeCell.c ? 'bg-orange-400 text-white scale-105' : 'bg-amber-200 text-amber-900');
+                }
+            }
+
+            // Highlight Cells (Crosshair + Answered States)
             for (let r = 0; r < rowsCount; r++) {
                 for (let c = 0; c < colsCount; c++) {
                     const cellEl = document.getElementById(`cell-${r}-${c}`);
                     if (!cellEl) continue;
-                    if (r === activeCell.r && c === activeCell.c) {
-                        cellEl.className = "w-full h-full rounded-xl bg-yellow-200 ring-4 ring-amber-500 flex items-center justify-center font-black text-2xl text-slate-800 cursor-pointer shadow-md scale-105 transition-all";
-                    } else {
-                        const val = userInputs[r][c];
-                        if (val !== null) {
-                            // Already answered styling
-                            const isCorrect = val === answers[r][c];
-                            cellEl.className = isCorrect 
-                                ? "w-full h-full rounded-xl bg-emerald-100 flex items-center justify-center font-black text-2xl text-emerald-800 cursor-pointer shadow-inner transition-all"
-                                : "w-full h-full rounded-xl bg-rose-100 flex items-center justify-center font-black text-2xl text-rose-800 cursor-pointer shadow-inner transition-all";
+
+                    const val = userInputs[r][c];
+                    cellEl.innerText = val !== null ? val : '';
+
+                    const isCurrent = (r === activeCell.r && c === activeCell.c);
+                    const isCrosshair = (r === activeCell.r || c === activeCell.c);
+                    const isCorrect = val === answers[r][c];
+
+                    let baseCls = "w-full h-full rounded-lg flex items-center justify-center font-black cursor-pointer transition-all select-none ";
+
+                    if (isCurrent) {
+                        if (val !== null && !isCorrect && String(val).length >= String(answers[r][c]).length) {
+                            cellEl.className = baseCls + "bg-rose-200 ring-4 ring-rose-500 text-rose-900 shadow-md scale-105";
                         } else {
-                            cellEl.className = "w-full h-full rounded-xl bg-amber-50 hover:bg-amber-100 flex items-center justify-center font-black text-2xl text-slate-700 cursor-pointer shadow-inner transition-all";
+                            cellEl.className = baseCls + "bg-yellow-200 ring-4 ring-amber-500 text-slate-900 shadow-md scale-105 z-10";
                         }
+                    } else if (val !== null) {
+                        cellEl.className = isCorrect
+                            ? baseCls + "bg-emerald-100 text-emerald-800 shadow-inner"
+                            : baseCls + "bg-rose-100 text-rose-800 shadow-inner";
+                    } else if (isCrosshair) {
+                        cellEl.className = baseCls + "bg-amber-100/80 text-slate-700";
+                    } else {
+                        cellEl.className = baseCls + "bg-amber-50/50 hover:bg-amber-100 text-slate-700";
                     }
                 }
             }
         }
 
+        function updateComboDisplay() {
+            const badge = document.getElementById('combo-badge');
+            const countEl = document.getElementById('combo-count');
+            if (comboCount >= 5) {
+                badge.classList.remove('hidden');
+                countEl.innerText = comboCount;
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
         function inputNumber(num) {
             const { r, c } = activeCell;
-            const rowsCount = rowHeaders.length;
-            const colsCount = colHeaders.length;
-
-            // Check if current cell already has single digit or multi digit handling
-            // For first grade, results are mostly 1 or 2 digits (up to 20)
-            let currentValStr = userInputs[r][c] !== null ? String(userInputs[r][c]) : '';
-            
-            // If currentVal has 2 digits, reset or append. Let's allow up to 2 digits.
-            if (currentValStr.length >= 2) {
-                currentValStr = String(num);
-            } else {
-                currentValStr += String(num);
-            }
-
-            const val = parseInt(currentValStr, 10);
-            userInputs[r][c] = val;
-
-            // Instant check or advance when answer is complete/correct length
-            // Check if correct answer matches length or value
             const correctVal = answers[r][c];
             const correctStr = String(correctVal);
 
-            if (currentValStr.length >= correctStr.length || val >= 10) {
-                if (val === correctVal) {
-                    playSound('correct');
-                } else if (currentValStr.length >= correctStr.length) {
-                    playSound('error');
-                }
-                
-                // Automatically move to next cell
-                moveToNextCell();
+            let currentVal = userInputs[r][c];
+            let currentStr = currentVal !== null ? String(currentVal) : '';
+
+            // If cell was already answered or had full digits (wrong), overwrite with new digit
+            if (currentVal === correctVal || currentStr.length >= correctStr.length) {
+                currentStr = String(num);
             } else {
-                renderGrid();
-                updateActiveCellHighlight();
+                currentStr += String(num);
             }
 
-            checkCompletion();
+            const newVal = parseInt(currentStr, 10);
+            userInputs[r][c] = newVal;
+
+            // Check if user has entered enough digits to evaluate
+            if (newVal === correctVal) {
+                playSound('correct');
+                comboCount++;
+                updateComboDisplay();
+                updateActiveCellHighlight();
+                
+                if (!checkCompletion()) {
+                    moveToNextUnansweredCell();
+                }
+            } else if (currentStr.length >= correctStr.length) {
+                // Wrong answer: stay on current cell, shake, allow immediate overwrite
+                playSound('error');
+                hadMistake[r][c] = true;
+                comboCount = 0;
+                updateComboDisplay();
+                updateActiveCellHighlight();
+
+                const cellEl = document.getElementById(`cell-${r}-${c}`);
+                if (cellEl) {
+                    cellEl.classList.remove('shake');
+                    void cellEl.offsetWidth; // trigger reflow
+                    cellEl.classList.add('shake');
+                }
+            } else {
+                // First digit of a 2-digit answer entered
+                updateActiveCellHighlight();
+            }
         }
 
         function inputDelete() {
             const { r, c } = activeCell;
             userInputs[r][c] = null;
-            renderGrid();
             updateActiveCellHighlight();
             checkCompletion();
         }
 
-        function moveToNextCell() {
+        function moveToNextUnansweredCell() {
             const rowsCount = rowHeaders.length;
             const colsCount = colHeaders.length;
-
             let { r, c } = activeCell;
-            c++;
-            if (c >= colsCount) {
-                c = 0;
-                r++;
-                if (r >= rowsCount) {
-                    r = 0; // Wrap around or stay at end
+
+            for (let i = 0; i < totalCellsCount; i++) {
+                c++;
+                if (c >= colsCount) {
+                    c = 0;
+                    r++;
+                    if (r >= rowsCount) r = 0;
+                }
+                if (userInputs[r][c] !== answers[r][c]) {
+                    activeCell = { r, c };
+                    updateActiveCellHighlight();
+                    return;
                 }
             }
+        }
+
+        function moveActiveCell(dr, dc) {
+            const rowsCount = rowHeaders.length;
+            const colsCount = colHeaders.length;
+            let r = (activeCell.r + dr + rowsCount) % rowsCount;
+            let c = (activeCell.c + dc + colsCount) % colsCount;
             activeCell = { r, c };
-            renderGrid();
             updateActiveCellHighlight();
         }
 
         function checkCompletion() {
             const rowsCount = rowHeaders.length;
             const colsCount = colHeaders.length;
-            let filledCount = 0;
-            let total = rowsCount * colsCount;
+            let correctFilled = 0;
 
             for (let r = 0; r < rowsCount; r++) {
                 for (let c = 0; c < colsCount; c++) {
-                    if (userInputs[r][c] !== null) {
-                        filledCount++;
+                    if (userInputs[r][c] === answers[r][c]) {
+                        correctFilled++;
                     }
                 }
             }
 
-            document.getElementById('remaining-count').innerText = total - filledCount;
+            document.getElementById('remaining-count').innerText = totalCellsCount - correctFilled;
 
-            if (filledCount === total) {
-                // Finish game!
+            if (correctFilled === totalCellsCount) {
                 clearInterval(timerInterval);
                 const finalTime = (Date.now() - startTime) / 1000;
-                endGame(finalTime);
+                setTimeout(() => endGame(finalTime), 150);
+                return true;
             }
+            return false;
         }
 
         function endGame(finalTime) {
@@ -560,26 +714,57 @@
 
             const rowsCount = rowHeaders.length;
             const colsCount = colHeaders.length;
-            let correctCount = 0;
+            let firstTryCorrect = 0;
             let errors = [];
+            const opSymbol = currentOp === 'add' ? '＋' : '－';
 
             for (let r = 0; r < rowsCount; r++) {
                 for (let c = 0; c < colsCount; c++) {
-                    if (userInputs[r][c] === answers[r][c]) {
-                        correctCount++;
+                    if (!hadMistake[r][c]) {
+                        firstTryCorrect++;
                     } else {
                         errors.push({
-                            expr: `${rowHeaders[r]} ${currentOp === 'add' ? '+' : '-'} ${colHeaders[c]}`,
-                            user: userInputs[r][c],
+                            expr: `${rowHeaders[r]} ${opSymbol} ${colHeaders[c]}`,
                             correct: answers[r][c]
                         });
                     }
                 }
             }
 
-            const accuracy = Math.round((correctCount / totalCellsCount) * 100);
+            const accuracy = Math.round((firstTryCorrect / totalCellsCount) * 100);
+            const roundedTime = parseFloat(finalTime.toFixed(1));
 
-            document.getElementById('res-time').innerText = finalTime.toFixed(1) + 'びょう';
+            // Check & Save Best Time
+            const bests = JSON.parse(localStorage.getItem('calc_bests') || '{}');
+            const key = getModeKey();
+            const isNewRecord = !bests[key] || roundedTime < bests[key];
+            if (isNewRecord) {
+                bests[key] = roundedTime;
+                localStorage.setItem('calc_bests', JSON.stringify(bests));
+                document.getElementById('new-record-badge').classList.remove('hidden');
+            } else {
+                document.getElementById('new-record-badge').classList.add('hidden');
+            }
+
+            // Medal Evaluation (Target: ~2.5s per cell for Gold, ~4s for Silver)
+            const avgTimePerCell = roundedTime / totalCellsCount;
+            const medalEl = document.getElementById('res-medal');
+            const titleEl = document.getElementById('res-title');
+            if (accuracy === 100 && avgTimePerCell <= 2.5) {
+                medalEl.innerText = '💮';
+                titleEl.innerText = 'パーフェクト！かんぺきなはなまる！';
+            } else if (accuracy >= 90 && avgTimePerCell <= 4.0) {
+                medalEl.innerText = '🥇';
+                titleEl.innerText = 'たいへんよくできました！';
+            } else if (accuracy >= 80) {
+                medalEl.innerText = '🥈';
+                titleEl.innerText = 'よくがんばりました！';
+            } else {
+                medalEl.innerText = '🥉';
+                titleEl.innerText = 'さいごまでやりぬいたね！';
+            }
+
+            document.getElementById('res-time').innerText = roundedTime.toFixed(1) + 'びょう';
             document.getElementById('res-accuracy').innerText = accuracy + '%';
             document.getElementById('res-errors').innerText = errors.length + ' こ';
 
@@ -590,28 +775,40 @@
                 errorContainer.classList.remove('hidden');
                 errorListEl.innerHTML = errors.map(e => `
                     <div class="bg-white px-3 py-1.5 rounded-xl border border-rose-200 text-sm font-bold text-slate-700 shadow-sm">
-                        ${e.expr} = <span class="text-rose-500">${e.user}</span> <span class="text-emerald-600">(正解: ${e.correct})</span>
+                        ${e.expr} ＝ <span class="text-emerald-600 font-black">${e.correct}</span>
                     </div>
                 `).join('');
             } else {
                 errorContainer.classList.add('hidden');
             }
 
-            // Save history to localStorage
             saveHistory({
                 date: new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                op: currentOp === 'add' ? 'たし算' : 'ひき算',
+                op: currentOp === 'add' ? 'たしざん' : 'ひきざん',
+                range: currentRange,
                 size: totalCellsCount,
-                time: parseFloat(finalTime.toFixed(1)),
+                time: roundedTime,
                 accuracy: accuracy
             });
         }
 
-        function quitGame() {
-            if (confirm('ちゅうおうをやめますか？')) {
-                if (timerInterval) clearInterval(timerInterval);
-                showSetupView();
-            }
+        // --- Custom Quit Modal Functions ---
+        function openQuitModal() {
+            const modal = document.getElementById('quit-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeQuitModal() {
+            const modal = document.getElementById('quit-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmQuitGame() {
+            closeQuitModal();
+            if (timerInterval) clearInterval(timerInterval);
+            showSetupView();
         }
 
         function showSetupView() {
@@ -620,15 +817,41 @@
             document.getElementById('result-view').classList.add('hidden');
             document.getElementById('history-view').classList.add('hidden');
             document.getElementById('setup-view').classList.remove('hidden');
+            updateBestScoreDisplay();
         }
 
-        // History Management & Chart
+        // --- Keyboard Support for PC / External Keyboards ---
+        window.addEventListener('keydown', (e) => {
+            if (document.getElementById('game-view').classList.contains('hidden')) return;
+            if (!document.getElementById('quit-modal').classList.contains('hidden')) return;
+
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault();
+                inputNumber(parseInt(e.key, 10));
+            } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                e.preventDefault();
+                inputDelete();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                moveActiveCell(0, 1);
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                moveActiveCell(0, -1);
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                moveActiveCell(1, 0);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                moveActiveCell(-1, 0);
+            }
+        });
+
+        // --- History Management & Chart ---
         let historyChartInstance = null;
 
         function saveHistory(record) {
             let history = JSON.parse(localStorage.getItem('calc_history') || '[]');
             history.push(record);
-            // Keep last 20 records
             if (history.length > 20) history.shift();
             localStorage.setItem('calc_history', JSON.stringify(history));
         }
@@ -640,27 +863,25 @@
             document.getElementById('history-view').classList.remove('hidden');
 
             const history = JSON.parse(localStorage.getItem('calc_history') || '[]');
-            
-            // Render list
             const listEl = document.getElementById('history-list');
+
             if (history.length === 0) {
                 listEl.innerHTML = `<p class="text-center text-slate-400 py-4 font-bold">まだきろくがありません。ちょうせんしよう！</p>`;
             } else {
                 listEl.innerHTML = history.slice().reverse().map(h => `
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
                         <div>
                             <span class="text-xs font-bold bg-amber-100 text-amber-800 px-2 py-1 rounded-lg mr-2">${h.op} (${h.size}マス)</span>
-                            <span class="text-sm font-bold text-slate-500">${h.date}</span>
+                            <span class="text-xs font-bold text-slate-500">${h.date}</span>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <span class="text-sm font-bold text-emerald-600">正解率: ${h.accuracy}%</span>
-                            <span class="text-lg font-black text-slate-800">${h.time}びょう</span>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-bold text-emerald-600">一発正解: ${h.accuracy}%</span>
+                            <span class="text-base font-black text-slate-800">${h.time}びょう</span>
                         </div>
                     </div>
                 `).join('');
             }
 
-            // Render Chart
             renderChart(history);
         }
 
@@ -681,10 +902,10 @@
                         label: 'タイム（秒）',
                         data: data,
                         borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        backgroundColor: 'rgba(245, 158, 11, 0.15)',
                         borderWidth: 4,
                         pointBackgroundColor: '#d97706',
-                        pointRadius: 6,
+                        pointRadius: 5,
                         tension: 0.3,
                         fill: true
                     }]
@@ -709,11 +930,15 @@
         }
 
         function clearHistory() {
-            if (confirm('すべてのきろくをけしますか？')) {
+            if (confirm('すべてのきろくと じこベストを けしますか？')) {
                 localStorage.removeItem('calc_history');
+                localStorage.removeItem('calc_bests');
                 showHistoryView();
             }
         }
+
+        // Init best score on first load
+        updateBestScoreDisplay();
     </script>
 </body>
 </html>
